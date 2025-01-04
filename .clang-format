@@ -1,0 +1,31 @@
+AlignOperands: true
+AlignAfterOpenBracket: Align
+AlignConsecutiveMacros: true
+AlignConsecutiveAssignments: true
+AllowShortFunctionsOnASingleLine: false
+AlignTrailingComments: true
+AlignConsecutiveDeclarations: true
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowAllArgumentsOnNextLine: false
+BasedOnStyle: LLVM
+BinPackParameters: true
+BreakBeforeTernaryOperators: true
+BreakBeforeBraces: Linux
+BinPackArguments: true
+BreakBeforeBinaryOperators: None
+ColumnLimit: 100
+IndentWidth: 4
+IndentPPDirectives: None
+IncludeCategories: 
+  - Regex:           '^"(llvm|llvm-c|clang|clang-c)/'
+    Priority:        2
+  - Regex:           '^(<|"(gtest|isl|json)/)'
+    Priority:        3
+  - Regex:           '.*'
+    Priority:        1
+PointerAlignment: Left
+ReflowComments: true
+SortIncludes: false
+SpaceBeforeAssignmentOperators: true
+TabWidth: 4
+UseTab: Always
