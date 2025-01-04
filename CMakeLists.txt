@@ -13,4 +13,4 @@ target_include_directories(public PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/lib/elo
 
 # demo main
 add_executable(main ${CMAKE_CURRENT_SOURCE_DIR}/demo/main.c)
-target_link_libraries(main public)
+target_link_libraries(main pthread public)

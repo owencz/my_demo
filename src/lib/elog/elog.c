@@ -235,16 +235,13 @@ void elog_start(void) {
     
     /* enable output */
     elog_set_output_enabled(true);
-    printf("123\n");
 #if defined(ELOG_ASYNC_OUTPUT_ENABLE)
     elog_async_enabled(true);
 #elif defined(ELOG_BUF_OUTPUT_ENABLE)
     elog_buf_enabled(true);
 #endif
-    printf("456\n");
     /* show version */
     log_i("EasyLogger V%s is initialize success.", ELOG_SW_VERSION);
-    printf("789\n");
 }
 
 /**

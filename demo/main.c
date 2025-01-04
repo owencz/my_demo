@@ -12,16 +12,26 @@
 #include <unistd.h>
 #include "log.h"
 
-int main(int argc, char* argv[])
+#ifdef LOG_TAG
+#undef LOG_TAG
+#define LOG_TAG "main"
+#endif
+
+void _test_log(void)
 {
-	log_init(LOG_LVL_DEBUG);
-	printf("hello world 111\n");
-	// log_a("hello world");
+	log_a("hello world");
 	log_e("hello world");
 	log_w("hello world");
 	log_i("hello world");
 	log_d("hello world");
 	log_v("hello world");
+}
+
+int main(int argc, char* argv[])
+{
+	log_init(LOG_LVL_VERBOSE);
+
+	_test_log();
 	sleep(1);
 	return 0;
 }
