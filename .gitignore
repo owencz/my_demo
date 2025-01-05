@@ -10,3 +10,4 @@ CTestTestfile.cmake
 
 *.a
 main
+build/

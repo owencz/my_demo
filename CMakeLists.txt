@@ -6,11 +6,7 @@ project(main)
 set(CMAKE_BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/output)
 
 # libpublic.a
-# 添加当前目录下的所有 .c 文件到 SRC_PUBLIC 变量
-aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/src/lib/elog SRC_PUBLIC)
-add_library(public STATIC ${SRC_PUBLIC})
-target_include_directories(public PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/lib/elog)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/lib)
 
-# demo main
-add_executable(main ${CMAKE_CURRENT_SOURCE_DIR}/demo/main.c)
-target_link_libraries(main pthread public)
+# test 下的子项目
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/test)
