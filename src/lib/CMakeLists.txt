@@ -1,5 +1,5 @@
 
-# 添加当前目录下的所有 .c 文件到 SRC_PUBLIC 变量
+# public 库构建
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/elog SRC_ELOG)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/kernel SRC_KERNEL)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/nio SRC_NIO)
