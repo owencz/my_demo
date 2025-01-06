@@ -42,6 +42,9 @@ int raw_nioSend(NC_nio io, uint32_t id, void* data, size_t size)
 	hdr.msg_iovlen = 2;
 
 	int rv = nn_sendmsg(io.id, &hdr, 0);
+	if (rv < 0) {
+		log_e("send error");
+	}
 	// log_d("id=%d,size=%d,rv=%d,data=%s", id, size, rv, data);
 	return 0;
 }
@@ -70,11 +73,15 @@ int raw_nioRecv(NC_nio io, uint32_t* id, void* data, size_t size)
 	hdr.msg_iovlen = 2;
 
 	int rv = nn_recvmsg(io.id, &hdr, 0);
-	*id	   = head.id;
-	size   = head.size;
+	if (rv < 0) {
+		log_e("recv error");
+		return rv;
+	} else {
+		*id	 = head.id;
+		size = head.size;
+		return size;
+	}
 	// log_d("id=%d,size=%d,rv=%d,data=%s", *id, size, rv, data);
-
-	return size;
 }
 
 /**
@@ -145,6 +152,7 @@ int raw_nioPubSubTips(NC_nio* io, char* tips)
 		log_e("tips:%s", strerror(errno));
 		return -1;
 	}
+	return 0;
 }
 
 /**
