@@ -3,13 +3,13 @@
         {
             "name": "Linux",
             "includePath": [
-                "${workspaceFolder}/**", // 包含工作区内的所有子目录
-                "/usr/include",          // 标准系统头文件路径
-                "/usr/local/include",    // 第三方库的头文件路径
-                "/path/to/your/library/include" // 你的项目依赖的特定库的头文件路径
+                "${workspaceFolder}/**",
+                "/usr/include",
+                "/usr/local/include",
+                "/path/to/your/library/include"
             ],
             "defines": [],
-            "compilerPath": "/usr/bin/gcc", // 指定编译器路径，确保与你使用的编译器匹配
+            "compilerPath": null,
             "cStandard": "c11",
             "cppStandard": "c++17",
             "intelliSenseMode": "gcc-x64"
