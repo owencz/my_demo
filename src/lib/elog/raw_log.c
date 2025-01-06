@@ -16,7 +16,7 @@
  * @param lvl
  * @return int
  */
-int log_init(uint8_t lvl)
+int raw_logInit(uint8_t lvl)
 {
 	/* 初始化日志系统 */
 	elog_init();

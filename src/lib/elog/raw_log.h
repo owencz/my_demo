@@ -30,7 +30,7 @@ extern "C" {
  * @param lvl
  * @return int
  */
-int log_init(uint8_t lvl);
+int raw_logInit(uint8_t lvl);
 
 #ifdef __cplusplus
 }

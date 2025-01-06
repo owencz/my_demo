@@ -10,7 +10,7 @@
  */
 #include <stdio.h>
 #include <unistd.h>
-#include "log.h"
+#include "raw_log.h"
 
 #ifdef LOG_TAG
 #undef LOG_TAG
@@ -29,7 +29,7 @@ void _test_log(void)
 
 int main(int argc, char* argv[])
 {
-	log_init(LOG_LVL_VERBOSE);
+	raw_logInit(LOG_LVL_VERBOSE);
 
 	_test_log();
 	sleep(1);
