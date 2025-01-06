@@ -32,6 +32,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <sys/syscall.h>
+#include <sys/time.h>
 
 #ifdef ELOG_FILE_ENABLE
 #include <elog_file.h>
@@ -107,6 +108,7 @@ void elog_port_output_unlock(void) {
  * @return current time
  */
 const char *elog_port_get_time(void) {
+#if 0
     static char cur_system_time[24] = { 0 };
 
     time_t cur_t;
@@ -118,6 +120,22 @@ const char *elog_port_get_time(void) {
     strftime(cur_system_time, sizeof(cur_system_time), "%Y-%m-%d %T", &cur_tm);
 
     return cur_system_time;
+#else
+	static char cur_system_time[64] = {0};
+	struct timeval time;
+	struct tm*	p;
+
+	gettimeofday(&time, NULL);
+	p = localtime(&time.tv_sec);
+	if (p == NULL) {
+		return "";
+	}
+	sprintf(cur_system_time, "%02d-%02d %02d:%02d:%02d.%03ld", p->tm_mon + 1, p->tm_mday, p->tm_hour,
+			 p->tm_min, p->tm_sec, (long int)(time.tv_usec/1000));
+
+	return cur_system_time;
+#endif
+
 }
 
 /**
