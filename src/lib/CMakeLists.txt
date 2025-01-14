@@ -16,4 +16,4 @@ target_include_directories(public PUBLIC
 							${CMAKE_CURRENT_SOURCE_DIR}/kernel
 							${CMAKE_CURRENT_SOURCE_DIR}/nio)
 
-target_link_libraries(public PRIVATE pthread uv nanomsg unwind)
+target_link_libraries(public PRIVATE pthread uv nanomsg unwind unwind-x86_64)

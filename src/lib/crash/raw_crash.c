@@ -42,9 +42,9 @@ void raw_crashPrintStack(void)
 		}
 		char sym[256];
 		if (unw_get_proc_name(&cursor, sym, sizeof(sym), &offset) == 0) {
-			log_a("addr=0x%lx (%s+0x%lx)\n", (long)pc, sym, (long)offset);
+			log_a("addr=0x%lx (%s+0x%lx)", (long)pc, sym, (long)offset);
 		} else {
-			log_a(" -- no symbol\n");
+			log_a(" -- no symbol");
 		}
 	}
 }

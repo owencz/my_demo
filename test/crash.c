@@ -23,8 +23,7 @@
  */
 static void crash_handler(int sig)
 {
-	log_a("crash_handler %d", sig);
-	log_a("=======    crash stack   =======");
+	log_a("=======    crash stack sig=[%d]    =======", sig);
 	raw_crashPrintStack();
 }
 
@@ -37,13 +36,22 @@ static void crash_handler(int sig)
  */
 int main(int argc, char* argv[])
 {
+	raw_logInit(LOG_LVL_DEBUG);
 
 	signal(SIGSEGV, crash_handler);
+	signal(SIGABRT, crash_handler);
+	signal(SIGBUS, crash_handler);
+	signal(SIGFPE, crash_handler);
+	signal(SIGILL, crash_handler);
+	signal(SIGINT, crash_handler);
+	signal(SIGTERM, crash_handler);
+
 	int64_t i = 0;
 
-	while(1){
+	while (1) {
 		i++;
 		sleep(1);
+		log_i("i = %lld", i);
 	}
 	return 0;
 }
