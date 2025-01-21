@@ -8,6 +8,7 @@
  * @copyright Copyright (c) 2022 owenr-owenchzh
  *
  */
+#include <stdlib.h>
 #include "raw_nio.h"
 
 #ifdef LOG_TAG
@@ -38,8 +39,12 @@ int raw_nioSend(NC_nio io, uint32_t id, void* data, size_t size)
 	iov[1].iov_base = data;
 	iov[1].iov_len	= size;
 	memset(&hdr, 0, sizeof(hdr));
-	hdr.msg_iov	   = iov;
-	hdr.msg_iovlen = 2;
+	hdr.msg_iov = iov;
+	if (data == NULL || size == 0) {
+		hdr.msg_iovlen = 1;
+	} else {
+		hdr.msg_iovlen = 2;
+	}
 
 	int rv = nn_sendmsg(io.id, &hdr, 0);
 	if (rv < 0) {
@@ -50,38 +55,65 @@ int raw_nioSend(NC_nio io, uint32_t id, void* data, size_t size)
 }
 
 /**
- * @brief 数据接收
+ * @brief 数据接收方式
  *
  * @param io
  * @param id
  * @param data
- * @param szie
  * @return int
  */
-int raw_nioRecv(NC_nio io, uint32_t* id, void* data, size_t size)
+int raw_nioRecv(NC_nio io, uint32_t* id, void* data)
 {
+	int				 rv = 0;
 	NC_msgHdr		 head;
 	struct nn_msghdr hdr;
-	struct nn_iovec	 iov[2];
+	struct nn_iovec	 iov[1];
 
-	iov[0].iov_base = &head;
-	iov[0].iov_len	= sizeof(id);
-	iov[1].iov_base = data;
-	iov[1].iov_len	= size;
+	/* 获取消息头*/
 	memset(&hdr, 0, sizeof(hdr));
-	hdr.msg_iov	   = iov;
-	hdr.msg_iovlen = 2;
-
-	int rv = nn_recvmsg(io.id, &hdr, 0);
-	if (rv < 0) {
+	iov[0].iov_base = &head;
+	iov[0].iov_len	= sizeof(head);
+	hdr.msg_iov		= iov;
+	hdr.msg_iovlen	= 1;
+	rv				= nn_recvmsg(io.id, &hdr, 0);
+	if (rv != sizeof(head)) {
 		log_e("recv error");
-		return rv;
+		return -1;
 	} else {
-		*id	 = head.id;
-		size = head.size;
-		return size;
+		*id = head.id;
 	}
-	// log_d("id=%d,size=%d,rv=%d,data=%s", *id, size, rv, data);
+
+	if (head.size <= 0) {
+		/* 不存在多余的数据 */
+		return 0;
+	} else {
+		data = (void*)calloc(1, head.size + 1);
+	}
+	/* 如果存在剩余数据，则继续接收 */
+	memset(&hdr, 0, sizeof(hdr));
+	iov[0].iov_base = data;
+	iov[0].iov_len	= head.size;
+	hdr.msg_iov		= iov;
+	hdr.msg_iovlen	= 1;
+	rv				= nn_recvmsg(io.id, &hdr, 0);
+	if (rv != head.size) {
+		log_e("recv error");
+		return -1;
+	}
+	return head.size;
+}
+/**
+ * @brief 释放内存
+ *
+ * @param data
+ * @return int
+ */
+int raw_nioFree(void* data)
+{
+	if (data) {
+		free(data);
+	}
+	return 0;
 }
 
 /**

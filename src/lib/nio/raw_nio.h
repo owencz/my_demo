@@ -1,4 +1,4 @@
- /**
+/**
  * @file raw_nio.h
  * @author owenchzh (ch.zhen@nlscan.com)
  * @brief
@@ -14,7 +14,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif ////__cplusplus
+#endif
 
 #include <stdio.h>
 #include <string.h>
@@ -66,11 +66,16 @@ int raw_nioSend(NC_nio io, uint32_t id, void* data, size_t size);
  * @param io
  * @param id
  * @param data
- * @param szie
  * @return int
  */
-int raw_nioRecv(NC_nio io, uint32_t* id, void* data, size_t szie);
-
+int raw_nioRecv(NC_nio io, uint32_t* id, void* data);
+/**
+ * @brief 释放内存
+ *
+ * @param data
+ * @return int
+ */
+int raw_nioFree(void* data);
 /**
  * @brief 关闭连接
  *
@@ -125,5 +130,5 @@ int raw_nioPushPull(char* link, NC_nnType type, NC_nio* io);
 
 #ifdef __cplusplus
 }
-#endif //__cplusplus
-#endif //_raw_nio_H
+#endif // __cplusplus
+#endif // _raw_nio_H
