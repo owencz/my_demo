@@ -52,7 +52,7 @@ static void _work3_callback(uv_work_t* req)
 {
 	// 异步任务逻辑
 	nc_my_t* my = (nc_my_t*)req->data;
-	uint32_t id = 0;
+	uint32_t id = 3000;
 	char	 buff[1024];
 
 	while (1) {
@@ -60,7 +60,7 @@ static void _work3_callback(uv_work_t* req)
 		memset(buff, 0, sizeof(buff));
 		sprintf(buff, "3- hello world %d", id);
 		// log_d("send: id=[%d],[%s]", id, buff);
-		raw_nioSend(my->io2, id, buff, strlen(buff));
+		raw_nioSend(my->io3, id, buff, strlen(buff));
 		usleep(1000 * 300);
 	}
 }
