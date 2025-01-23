@@ -24,65 +24,75 @@
 typedef struct _my {
 	uv_loop_t* loop;
 	uv_poll_t  poll;
-	uv_work_t  work2;
-	uv_work_t  work3;
+	uv_poll_t  poll2;
+	uv_poll_t  poll3;
+	uv_timer_t timer;
 	NC_nio	   io1;
 	NC_nio	   io2;
 	NC_nio	   io3;
 } nc_my_t;
 
-static void _work2_callback(uv_work_t* req)
+static void _on_poll_services(uv_poll_t* handle, int status, int events)
 {
-	// 异步任务逻辑
-	nc_my_t* my = (nc_my_t*)req->data;
-	uint32_t id = 0;
-	char	 buff[1024];
-
-	while (1) {
-		id++;
-		memset(buff, 0, sizeof(buff));
-		sprintf(buff, "2- hello world %d", id);
-		// log_d("send: id=[%d],[%s]", id, buff);
-		raw_nioSend(my->io2, id, buff, strlen(buff));
-		usleep(1000 * 300);
-	}
-}
-
-static void _work3_callback(uv_work_t* req)
-{
-	// 异步任务逻辑
-	nc_my_t* my = (nc_my_t*)req->data;
-	uint32_t id = 0;
-	char	 buff[1024];
-
-	while (1) {
-		id++;
-		memset(buff, 0, sizeof(buff));
-		sprintf(buff, "3- hello world %d", id);
-		// log_d("send: id=[%d],[%s]", id, buff);
-		raw_nioSend(my->io2, id, buff, strlen(buff));
-		usleep(1000 * 300);
-	}
-}
-
-static void _after_work_callback(uv_work_t* req, int status)
-{
-	// 任务完成后的处理逻辑
-}
-
-static void _poll_callback(uv_poll_t* handle, int status, int events)
-{
-	nc_my_t* my = (nc_my_t*)handle->data;
-	char	 buff[1024];
-	uint32_t id = 0;
+	nc_my_t* my	  = (nc_my_t*)handle->data;
+	void*	 buff = NULL;
+	uint32_t id	  = 0;
+	int		 rv	  = 0;
 
 	if (events & UV_READABLE) {
-		memset(buff, 0, sizeof(buff));
-		raw_nioRecv(my->io1, &id, buff, sizeof(buff));
-		log_d("recv: id=[%d],[%s]", id, buff);
+		rv = raw_nioRecv(my->io1, &id, &buff);
+		if (rv > 0) {
+			log_d("recv: id=[%d],[%s]", id, buff);
+		} else {
+			log_e("recv: id=[%d],[%s]", id, buff);
+		}
+
+		raw_nioFree(buff);
 	}
 }
 
+static void _on_poll2_clients(uv_poll_t* handle, int status, int events)
+{
+	nc_my_t* my	  = (nc_my_t*)handle->data;
+	void*	 buff = NULL;
+	uint32_t id	  = 0;
+
+	if (events & UV_READABLE) {
+		raw_nioRecv(my->io2, &id, &buff);
+		log_d("recv: id=[%d],[%s]", id, buff);
+		raw_nioFree(buff);
+		char data[1024] = {0};
+		memset(data, 0, sizeof(data));
+		sprintf(data, "reply2: hello, %d", id);
+		raw_nioSend(my->io2, id, data, strlen(data));
+	}
+}
+static void _on_poll3_clients(uv_poll_t* handle, int status, int events)
+{
+	nc_my_t* my	  = (nc_my_t*)handle->data;
+	void*	 buff = NULL;
+	uint32_t id	  = 0;
+
+	if (events & UV_READABLE) {
+		raw_nioRecv(my->io3, &id, &buff);
+		log_d("recv: id=[%d],[%s]", id, buff);
+		raw_nioFree(buff);
+		char data[1024] = {0};
+		memset(data, 0, sizeof(data));
+		sprintf(data, "reply3: hello, %d", id);
+		raw_nioSend(my->io3, id, data, strlen(data));
+	}
+}
+static uint32_t g_id = 0;
+static void		_on_timer_cb(uv_timer_t* handle)
+{
+	nc_my_t* my = (nc_my_t*)handle->data;
+
+	g_id++;
+	raw_nioSend(my->io1, g_id, "hello", 5);
+
+	uv_timer_start(&my->timer, _on_timer_cb, 1000, 1000);
+}
 /**
  * @brief
  *
@@ -98,18 +108,25 @@ int main(int argc, char* argv[])
 
 	my.loop = uv_default_loop();
 
-	raw_nioPushPull(PATH_SURVEY, RAW_NIO_SERVICE, &my.io1); // survey service
-	raw_nioPushPull(PATH_SURVEY, RAW_NIO_CLIENT, &my.io2);  // survey client
-	raw_nioPushPull(PATH_SURVEY, RAW_NIO_CLIENT, &my.io3);  // survey client
+	raw_nioSurvey(PATH_SURVEY, RAW_NIO_SERVICE, &my.io1, 2000); // survey service
+	raw_nioSurvey(PATH_SURVEY, RAW_NIO_CLIENT, &my.io2, 0);		// survey client
+	raw_nioSurvey(PATH_SURVEY, RAW_NIO_CLIENT, &my.io3, 0);		// survey client
 
 	uv_poll_init(my.loop, &my.poll, my.io1.fd);
 	my.poll.data = &my;
-	uv_poll_start(&my.poll, UV_READABLE, _poll_callback);
+	uv_poll_start(&my.poll, UV_READABLE, _on_poll_services);
 
-	uv_queue_work(my.loop, &my.work2, _work2_callback, _after_work_callback);
-	my.work2.data = &my;
-	uv_queue_work(my.loop, &my.work3, _work3_callback, _after_work_callback);
-	my.work3.data = &my;
+	uv_poll_init(my.loop, &my.poll2, my.io2.fd);
+	my.poll2.data = &my;
+	uv_poll_start(&my.poll2, UV_READABLE, _on_poll2_clients);
+
+	uv_poll_init(my.loop, &my.poll3, my.io3.fd);
+	my.poll3.data = &my;
+	uv_poll_start(&my.poll3, UV_READABLE, _on_poll3_clients);
+
+	uv_timer_init(my.loop, &my.timer);
+	my.timer.data = &my;
+	uv_timer_start(&my.timer, _on_timer_cb, 0, 0);
 
 	uv_run(my.loop, UV_RUN_DEFAULT);
 }

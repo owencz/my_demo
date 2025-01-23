@@ -68,7 +68,7 @@ int raw_nioSend(NC_nio io, uint32_t id, void* data, size_t size);
  * @param data
  * @return int
  */
-int raw_nioRecv(NC_nio io, uint32_t* id, void* data);
+int raw_nioRecv(NC_nio io, uint32_t* id, void** data);
 /**
  * @brief 释放内存
  *
@@ -110,14 +110,15 @@ int raw_nioPubSubTips(NC_nio* io, char* tips);
  */
 int raw_nioReqrep(char* link, NC_nnType type, NC_nio* io);
 /**
- * @brief 调查者模式
+ * @brief 调查者 通信模式
  *
  * @param link
  * @param type
  * @param id
+ * @param timeout
  * @return int
  */
-int raw_nioSurvey(char* link, NC_nnType type, NC_nio* io);
+int raw_nioSurvey(char* link, NC_nnType type, NC_nio* io, size_t timeout);
 /**
  * @brief 实现push/pull模式
  *

@@ -27,6 +27,7 @@
  */
 int raw_nioSend(NC_nio io, uint32_t id, void* data, size_t size)
 {
+	int				 rv = 0;
 	NC_msgHdr		 head;
 	struct nn_msghdr hdr;
 	struct nn_iovec	 iov[2];
@@ -41,8 +42,8 @@ int raw_nioSend(NC_nio io, uint32_t id, void* data, size_t size)
 	iov[1].iov_len	= size;
 	hdr.msg_iov		= iov;
 	hdr.msg_iovlen	= 2;
-
-	int rv = nn_sendmsg(io.id, &hdr, 0);
+	// log_d("id=%d,size=%d,rv=%d,data=%s", id, size, rv, data);
+	rv = nn_sendmsg(io.id, &hdr, 0);
 	if (rv < 0) {
 		log_e("send error");
 	}
@@ -60,7 +61,7 @@ int raw_nioSend(NC_nio io, uint32_t id, void* data, size_t size)
  * @param data
  * @return int
  */
-int raw_nioRecv(NC_nio io, uint32_t* id, void* data)
+int raw_nioRecv(NC_nio io, uint32_t* id, void** data)
 {
 	int				 rv = 0;
 	NC_msgHdr		 head;
@@ -69,11 +70,12 @@ int raw_nioRecv(NC_nio io, uint32_t* id, void* data)
 	char			 buffer[1024];
 
 	memset(&buffer, 0, sizeof(buffer));
+	*data = (void*)calloc(1, MAX_MSG_SIZE);
 	// 初始化 hdr 和 iov
 	memset(&hdr, 0, sizeof(hdr));
 	iov[0].iov_base = &head;
 	iov[0].iov_len	= sizeof(head);
-	iov[1].iov_base = buffer;
+	iov[1].iov_base = *data;
 	iov[1].iov_len	= MAX_MSG_SIZE;
 	hdr.msg_iov		= iov;
 	hdr.msg_iovlen	= 2;
@@ -81,14 +83,14 @@ int raw_nioRecv(NC_nio io, uint32_t* id, void* data)
 	// 接收消息头
 	rv = nn_recvmsg(io.id, &hdr, 0);
 	if (rv < 0) {
-		log_e("recvmsg error: %s", strerror(errno));
-		return -1;
+		// log_e("recvmsg error: %s(%d)", strerror(errno), rv);
+		return rv;
 	}
-	log_d("id=%d, size=%zu, rv=%d", head.id, head.size, rv);
+	// log_d("id=%d, size=%zu, rv=%d", head.id, head.size, rv);
 	// 设置返回的 id
 	*id = head.id;
 
-	log_d("id=%d, size=%zu, rv=%d, data=%s", head.id, head.size, rv, (char*)data);
+	// log_d("id=%d, size=%zu, rv=%d, data=%s", head.id, head.size, rv, (char*)data);
 
 	return head.size;
 }
@@ -135,15 +137,18 @@ int raw_nioPubsub(char* link, NC_nnType type, NC_nio* io)
 			log_e("nn_socket:%s", strerror(errno));
 		}
 		if (nn_setsockopt(io->id, NN_SUB, NN_SUB_SUBSCRIBE, "", 0) < 0) {
+			nn_close(io->id);
 			log_e("nn_setsockopt:%s", strerror(errno));
 			return -1;
 		}
 		if (nn_connect(io->id, link) < 0) {
+			nn_close(io->id);
 			log_e("nn_connect:%s", strerror(errno));
 			return -1;
 		}
 		/*获取到对应的fd句柄*/
 		if (nn_getsockopt(io->id, NN_SOL_SOCKET, NN_RCVFD, &io->fd, &optlen) < 0) {
+			nn_close(io->id);
 			log_e("nn_setsockopt:%s", strerror(errno));
 			return -1;
 		}
@@ -152,6 +157,7 @@ int raw_nioPubsub(char* link, NC_nnType type, NC_nio* io)
 			log_e("nn_socket:%s", strerror(errno));
 		}
 		if (nn_bind(io->id, link) < 0) {
+			nn_close(io->id);
 			log_e("nn_bind:%s", strerror(errno));
 			return -1;
 		}
@@ -171,6 +177,7 @@ int raw_nioPubsub(char* link, NC_nnType type, NC_nio* io)
 int raw_nioPubSubTips(NC_nio* io, char* tips)
 {
 	if (nn_setsockopt(io->id, NN_SUB, NN_SUB_SUBSCRIBE, tips, strlen(tips)) < 0) {
+		nn_close(io->id);
 		log_e("tips:%s", strerror(errno));
 		return -1;
 	}
@@ -194,6 +201,7 @@ int raw_nioReqrep(char* link, NC_nnType type, NC_nio* io)
 			log_e("nn_socket:%s", strerror(errno));
 		}
 		if (nn_connect(io->id, link) < 0) {
+			nn_close(io->id);
 			log_e("nn_connect:%s", strerror(errno));
 			return -1;
 		}
@@ -202,12 +210,14 @@ int raw_nioReqrep(char* link, NC_nnType type, NC_nio* io)
 			log_e("nn_socket:%s", strerror(errno));
 		}
 		if (nn_bind(io->id, link) < 0) {
+			nn_close(io->id);
 			log_e("nn_bind:%s", strerror(errno));
 			return -1;
 		}
 		/*获取到对应的fd句柄*/
 		size_t optlen = sizeof(size_t);
 		if (nn_getsockopt(io->id, NN_SOL_SOCKET, NN_RCVFD, &io->fd, &optlen) < 0) {
+			nn_close(io->id);
 			log_e("nn_setsockopt:%s", strerror(errno));
 			return -1;
 		}
@@ -224,21 +234,25 @@ int raw_nioReqrep(char* link, NC_nnType type, NC_nio* io)
  * @param link
  * @param type
  * @param id
+ * @param timeout
  * @return int
  */
-int raw_nioSurvey(char* link, NC_nnType type, NC_nio* io)
+int raw_nioSurvey(char* link, NC_nnType type, NC_nio* io, size_t timeout)
 {
+	size_t optlen = sizeof(size_t);
+
 	if (type == RAW_NIO_CLIENT) {
 		if ((io->id = nn_socket(AF_SP, NN_RESPONDENT)) < 0) {
 			log_e("nn_socket:%s", strerror(errno));
 		}
 		if (nn_connect(io->id, link) < 0) {
+			nn_close(io->id);
 			log_e("nn_connect:%s", strerror(errno));
 			return -1;
 		}
 		/*获取到对应的fd句柄*/
-		size_t optlen = sizeof(size_t);
 		if (nn_getsockopt(io->id, NN_SOL_SOCKET, NN_RCVFD, &io->fd, &optlen) < 0) {
+			nn_close(io->id);
 			log_e("nn_setsockopt:%s", strerror(errno));
 			return -1;
 		}
@@ -247,7 +261,21 @@ int raw_nioSurvey(char* link, NC_nnType type, NC_nio* io)
 			log_e("nn_socket:%s", strerror(errno));
 		}
 		if (nn_bind(io->id, link) < 0) {
+			nn_close(io->id);
 			log_e("nn_bind:%s", strerror(errno));
+			return -1;
+		}
+		int time = timeout; // 以毫秒为单位
+		// 设置接收超时时间
+		if (nn_setsockopt(io->id, NN_SOL_SOCKET, NN_RCVTIMEO, &time, sizeof(time)) < 0) {
+			nn_close(io->id);
+			log_e("nn_setsockopt: %s", nn_strerror(nn_errno()));
+			return -1;
+		}
+		/*获取到对应的fd句柄*/
+		if (nn_getsockopt(io->id, NN_SOL_SOCKET, NN_RCVFD, &io->fd, &optlen) < 0) {
+			nn_close(io->id);
+			log_e("nn_setsockopt:%s", strerror(errno));
 			return -1;
 		}
 	}
@@ -274,6 +302,7 @@ int raw_nioPushPull(char* link, NC_nnType type, NC_nio* io)
 			return -1;
 		}
 		if (nn_connect(io->id, link) < 0) {
+			nn_close(io->id);
 			log_e("nn_connect");
 			return -1;
 		}
@@ -284,12 +313,14 @@ int raw_nioPushPull(char* link, NC_nnType type, NC_nio* io)
 			return -1;
 		}
 		if (nn_bind(io->id, link) < 0) {
+			nn_close(io->id);
 			log_e("nn_bind");
 			return -1;
 		}
 		/*获取到对应的fd句柄*/
 		size_t optlen = sizeof(size_t);
 		if (nn_getsockopt(io->id, NN_SOL_SOCKET, NN_RCVFD, &io->fd, &optlen) < 0) {
+			nn_close(io->id);
 			log_e("nn_setsockopt");
 			return -1;
 		}

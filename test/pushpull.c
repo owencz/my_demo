@@ -44,7 +44,7 @@ static void _work2_callback(uv_work_t* req)
 		sprintf(buff, "2- hello world %d", id);
 		// log_d("send: id=[%d],[%s]", id, buff);
 		raw_nioSend(my->io2, id, buff, strlen(buff));
-		usleep(1000 * 300);
+		usleep(1000 * 100);
 	}
 }
 
@@ -58,10 +58,10 @@ static void _work3_callback(uv_work_t* req)
 	while (1) {
 		id++;
 		memset(buff, 0, sizeof(buff));
-		sprintf(buff, "3- hello world %d", id);
+		// sprintf(buff, "3- hello world %d", id);
 		// log_d("send: id=[%d],[%s]", id, buff);
-		raw_nioSend(my->io3, id, buff, strlen(buff));
-		usleep(1000 * 300);
+		raw_nioSend(my->io3, id, NULL, 0);
+		usleep(1000 * 100);
 	}
 }
 
@@ -72,13 +72,13 @@ static void _after_work_callback(uv_work_t* req, int status)
 
 static void _poll_callback(uv_poll_t* handle, int status, int events)
 {
-	nc_my_t* my = (nc_my_t*)handle->data;
-	char*	 buff = NULL;
-	uint32_t id = 0;
+	nc_my_t* my	  = (nc_my_t*)handle->data;
+	void*	 buff = NULL;
+	uint32_t id	  = 0;
 
 	if (events & UV_READABLE) {
-		raw_nioRecv(my->io1, &id, buff);
-		log_d("recv: id=[%d],[%s]", id, buff);
+		raw_nioRecv(my->io1, &id, &buff);
+		log_w("recv: id=[%d],[%s]", id, buff);
 		raw_nioFree(buff);
 	}
 }
